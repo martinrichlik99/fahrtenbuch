@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1013" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fahrtenbuch">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Fahrtenbuch</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#14171c;--mut:#5b6472;--line:#dfe3e8;--acc:#0a6cff;--accTx:#fff;--ok:#0d7a3f;--warn:#9a5700;--bad:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1013;--card:#1a1e24;--tx:#f2f4f7;--mut:#9aa4b2;--line:#2c323b;--acc:#4c9aff;--accTx:#06121f;--ok:#4cd08a;--warn:#f0b04a;--bad:#ff7b72}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-text-size-adjust:100%}
+body{min-height:100vh;padding:calc(12px + env(safe-area-inset-top)) 16px calc(88px + env(safe-area-inset-bottom))}
+main{max-width:560px;margin:0 auto}
+h1{font-size:15px;font-weight:600;color:var(--mut);margin:0 auto 12px;max-width:560px;letter-spacing:.04em;text-transform:uppercase}
+h2{font-size:20px;margin:0 0 12px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+input{width:100%;min-height:48px;font-size:16px;padding:8px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg)}
+label{display:block;font-size:14px;color:var(--mut);margin:12px 0 4px}
+label input{margin-top:4px;color:var(--tx)}
+small{display:block;color:var(--mut);font-size:13px;font-weight:400}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px}
+.gross{display:block;width:100%;min-height:92px;margin:0 0 14px;padding:12px;border:0;border-radius:20px;background:var(--acc);color:var(--accTx);font-size:22px;font-weight:700;letter-spacing:.02em}
+.gross small{color:inherit;opacity:.85;font-size:15px;font-weight:500;margin-top:2px}
+.gross.sek{background:var(--card);color:var(--tx);border:2px solid var(--acc)}
+.gross:disabled,.knopf:disabled{opacity:.5}
+.reihe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.knopf{min-height:64px;padding:8px;border:2px solid var(--acc);border-radius:16px;background:var(--card);font-weight:700;font-size:16px}
+.knopf.voll{background:var(--acc);color:var(--accTx)}
+.knopf.klein{min-height:48px;font-size:16px}
+.link{background:none;border:0;color:var(--acc);min-height:44px;padding:0 4px;font-size:16px;text-decoration:underline}
+.link.bad{color:var(--bad)}
+.mini{flex:none;width:48px;min-height:48px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font-size:22px}
+.tag{display:inline-block;padding:4px 12px;border-radius:99px;background:var(--ok);color:var(--bg);font-weight:700;font-size:14px;letter-spacing:.05em}
+.stat{font-size:18px;margin:4px 0 16px}
+.stat b{font-size:26px}
+ul.stops{margin:12px 0;padding:0;list-style:none}
+ul.stops li{padding:4px 0}
+.warn{color:var(--warn)}
+.bad{color:var(--bad)}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 12px}
+.pager b{font-size:19px}
+table{width:100%;border-collapse:collapse}
+td,th{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:13px;color:var(--mut);font-weight:600}
+td.r,th.r{text-align:right;white-space:nowrap}
+tr.zeile{cursor:pointer}
+tr.zeile:focus-visible{outline:3px solid var(--acc)}
+tfoot td{font-weight:700;border-bottom:0}
+.st{display:flex;gap:8px;align-items:flex-end}
+.st>div{flex:1;min-width:0}
+.hinweis{max-width:560px;margin:0 auto 12px;padding:10px 14px;border-radius:14px;background:var(--card);border:1.5px solid var(--warn);color:var(--tx);font-size:15px}
+.hinweis:empty{display:none}
+nav{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{min-height:64px;border:0;background:none;font-size:16px;font-weight:600;color:var(--mut)}
+nav button[aria-current="page"]{color:var(--acc);box-shadow:inset 0 3px 0 var(--acc)}
+dialog{width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--tx);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));max-width:528px;margin:0 auto;padding:12px 16px;border-radius:14px;background:var(--tx);color:var(--bg);font-size:16px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+#toast.an{opacity:1}
+</style>
+</head>
+<body>
+<h1>Fahrtenbuch</h1>
+<div id="hinweis" class="hinweis" role="status"></div>
+<main id="main"></main>
+<nav aria-label="Bereiche">
+<button data-a="tab" data-t="heute">Fahrt</button>
+<button data-a="tab" data-t="monat">Monat</button>
+<button data-a="tab" data-t="einst">Einstellungen</button>
+</nav>
+<dialog id="dlg" aria-label="Fahrt bearbeiten"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(function(){
+'use strict';
+var KEY='fahrtenbuch_v1';
+var MONATE=['Jänner','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+var FIX={dion:'Dion',zuhause:'Zuhause'};
+var DB=laden();
+var tab='heute',monat=heute().slice(0,7),busy=false,rechnet=false,fehler='',toastT=0;
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function p2(n){return(n<10?'0':'')+n}
+function heute(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function fmt(k){return k==null?'…':(Math.round(k*10)/10).toFixed(1).replace('.',',')}
+function warte(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function el(id){return document.getElementById(id)}
+
+function laden(){
+  var d=null,roh=null;
+  try{roh=localStorage.getItem(KEY);d=roh?JSON.parse(roh):null}catch(e){
+    try{localStorage.setItem(KEY+'_defekt',roh||'')}catch(e2){}
+  }
+  d=d||{};
+  d.einst=d.einst||{};
+  d.fahrten=Array.isArray(d.fahrten)?d.fahrten:[];
+  for(var i=0;i<d.fahrten.length;i++){
+    var f=d.fahrten[i];
+    f.stationen=f.stationen||[];f.abschnitte=f.abschnitte||[];
+    if(f.kmManuell===undefined)f.kmManuell=null;
+  }
+  return d;
+}
+function speichern(){
+  try{localStorage.setItem(KEY,JSON.stringify(DB));return true}
+  catch(e){toast('SPEICHERN FEHLGESCHLAGEN: '+e.message);return false}
+}
+function toast(t){
+  var e=el('toast');e.textContent=t;e.classList.add('an');
+  clearTimeout(toastT);toastT=setTimeout(function(){e.classList.remove('an')},5000);
+}
+
+function fahrt(id){for(var i=0;i<DB.fahrten.length;i++)if(DB.fahrten[i].id===id)return DB.fahrten[i];return null}
+function laufende(){for(var i=0;i<DB.fahrten.length;i++)if(DB.fahrten[i].status==='laufend')return DB.fahrten[i];return null}
+function station(f,id){for(var i=0;i<f.stationen.length;i++)if(f.stationen[i].id===id)return f.stationen[i];return null}
+function gesamt(f){
+  if(f.kmManuell!=null)return f.kmManuell;
+  var s=0;
+  for(var i=0;i<f.abschnitte.length;i++){if(f.abschnitte[i].km==null)return null;s+=f.abschnitte[i].km}
+  return s;
+}
+function monatssumme(m){
+  var s=0;
+  for(var i=0;i<DB.fahrten.length;i++){
+    var f=DB.fahrten[i],g=gesamt(f);
+    if(f.status==='beendet'&&f.datum.slice(0,7)===m&&g!=null)s+=g;
+  }
+  return s;
+}
+function baueAbschnitte(f){
+  var neu=[];
+  for(var i=0;i<f.stationen.length-1;i++){
+    var v=f.stationen[i].id,n=f.stationen[i+1].id,alt=null;
+    for(var j=0;j<f.abschnitte.length;j++)if(f.abschnitte[j].von===v&&f.abschnitte[j].nach===n)alt=f.abschnitte[j];
+    neu.push(alt||{von:v,nach:n,km:null,route:'offen'});
+  }
+  f.abschnitte=neu;
+}
+
+function position(){
+  return new Promise(function(res,rej){
+    if(!navigator.geolocation)return rej({code:0});
+    var best=null,fertig=false,wid,to;
+    function ende(){
+      if(fertig)return;fertig=true;
+      navigator.geolocation.clearWatch(wid);clearTimeout(to);
+      if(best)res(best);else rej({code:3});
+    }
+    wid=navigator.geolocation.watchPosition(function(p){
+      if(!best||p.coords.accuracy<best.acc)best={lat:p.coords.latitude,lon:p.coords.longitude,acc:Math.round(p.coords.accuracy)};
+      if(best.acc<=25)ende();
+    },function(e){
+      if(fertig)return;
+      if(best)return ende();
+      fertig=true;clearTimeout(to);navigator.geolocation.clearWatch(wid);rej(e);
+    },{enableHighAccuracy:true,maximumAge:0,timeout:15000});
+    to=setTimeout(ende,10000);
+  });
+}
+function gpsFehler(e){
+  if(e&&e.code===1)return 'Standort nicht erlaubt. iPhone: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites bzw. Fahrtenbuch.';
+  if(e&&e.code===0)return 'Dieses Gerät hat keine Ortung.';
+  return 'Kein GPS-Signal. Bitte kurz ins Freie und nochmal drücken.';
+}
+function meter(a,b){
+  var r=Math.PI/180,R=6371000,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;
+  var x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+
+function chk(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+function adrText(j){
+  var a=j.address||{};
+  var strasse=a.road||a.pedestrian||a.footway||a.path||a.cycleway||a.square||a.neighbourhood||a.suburb||String(j.display_name||'').split(',')[0];
+  var plz=a.postcode||'';
+  var ort=a.city||a.town||a.village||'';
+  var text;
+  if(/^1(0[1-9]|1\d|2[0-3])0$/.test(plz))text=parseInt(plz.substr(1,2),10)+'., '+strasse;
+  else text=(ort?ort+', ':'')+strasse;
+  var voll=strasse+(a.house_number?' '+a.house_number:'')+', '+(plz?plz+' ':'')+ort;
+  return{text:text,voll:voll};
+}
+function umkehr(lat,lon){
+  return fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&accept-language=de&lat='+lat+'&lon='+lon).then(chk).then(adrText);
+}
+function suche(q){
+  return fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=de&q='+encodeURIComponent(q)).then(chk).then(function(l){
+    if(!l.length)throw new Error('Adresse nicht gefunden');
+    return{lat:+l[0].lat,lon:+l[0].lon,voll:adrText(l[0]).voll};
+  });
+}
+function route(a,b){
+  if(meter(a,b)<30)return Promise.resolve(0);
+  var k=DB.einst.orsKey,p;
+  if(k)p=fetch('https://api.openrouteservice.org/v2/directions/driving-car',{method:'POST',headers:{'Authorization':k,'Content-Type':'application/json'},body:JSON.stringify({coordinates:[[a.lon,a.lat],[b.lon,b.lat]]})}).then(chk).then(function(j){return j.routes[0].summary.distance});
+  else p=fetch('https://router.project-osrm.org/route/v1/driving/'+a.lon+','+a.lat+';'+b.lon+','+b.lat+'?overview=false').then(chk).then(function(j){return j.routes[0].distance});
+  return p.then(function(m){return Math.round(m/10)/100});
+}
+
+function offenAnzahl(){
+  var n=0;
+  for(var i=0;i<DB.fahrten.length;i++){
+    var f=DB.fahrten[i];
+    for(var j=0;j<f.stationen.length;j++)if(f.stationen[j].geo==='offen')n++;
+    for(var k=0;k<f.abschnitte.length;k++)if(f.abschnitte[k].km==null)n++;
+  }
+  return n;
+}
+function nachrechnen(){
+  if(rechnet||!navigator.onLine)return Promise.resolve();
+  rechnet=true;fehler='';
+  var jobs=[],i,j;
+  for(i=0;i<DB.fahrten.length;i++){
+    var f=DB.fahrten[i];
+    for(j=0;j<f.stationen.length;j++)if(f.stationen[j].geo==='offen')jobs.push({f:f,s:f.stationen[j]});
+  }
+  for(i=0;i<DB.fahrten.length;i++){
+    var g=DB.fahrten[i];
+    for(j=0;j<g.abschnitte.length;j++)if(g.abschnitte[j].km==null)jobs.push({f:g,a:g.abschnitte[j]});
+  }
+  var kette=Promise.resolve();
+  jobs.forEach(function(job){
+    kette=kette.then(function(){
+      if(fehler)return;
+      if(job.s){
+        return umkehr(job.s.lat,job.s.lon).then(function(r){
+          if(job.s.geo!=='offen')return;
+          job.s.adresse=r.text;job.s.voll=r.voll;job.s.geo='ok';
+        }).then(function(){speichern();render()}).then(function(){return warte(1100)});
+      }
+      var v=station(job.f,job.a.von),n=station(job.f,job.a.nach);
+      if(!v||!n)return;
+      return route(v,n).then(function(km){job.a.km=km;job.a.route='ok';speichern();render()});
+    }).catch(function(e){fehler=/fetch|network/i.test(e.message)?'Adress-/Routingdienst nicht erreichbar':e.message});
+  });
+  return kette.then(function(){rechnet=false;render()});
+}
+
+function starten(k){
+  if(busy||laufende())return;
+  var p=DB.einst[k];
+  if(!p){toast(FIX[k]+' ist noch nicht hinterlegt. Bitte zuerst in den Einstellungen setzen.');tab='einst';render();return}
+  DB.fahrten.push({id:crypto.randomUUID(),datum:heute(),status:'laufend',kmManuell:null,abschnitte:[],
+    stationen:[{id:crypto.randomUUID(),art:'start',fix:k,lat:p.lat,lon:p.lon,acc:0,adresse:FIX[k],voll:p.voll,geo:'ok'}]});
+  speichern();render();
+}
+function punkt(art,f){
+  busy=true;render();
+  return position().then(function(p){
+    var last=f.stationen[f.stationen.length-1];
+    if(last&&meter(last,p)<50){toast('Gleicher Ort wie die letzte Station (unter 50 m) – nicht doppelt gespeichert.');return false}
+    f.stationen.push({id:crypto.randomUUID(),art:art,fix:null,lat:p.lat,lon:p.lon,acc:p.acc,adresse:'',voll:'',geo:'offen'});
+    if(p.acc>100)toast('GPS ungenau (±'+p.acc+' m). Adresse bitte prüfen.');
+    return true;
+  }).catch(function(e){toast(gpsFehler(e));return false}).then(function(ok){busy=false;return ok});
+}
+function baustelle(){
+  var f=laufende();if(!f||busy)return;
+  punkt('baustelle',f).then(function(ok){
+    if(ok){baueAbschnitte(f);speichern();nachrechnen()}
+    render();
+  });
+}
+function beenden(k){
+  var f=laufende();if(!f||busy)return;
+  function fertig(){f.status='beendet';baueAbschnitte(f);speichern();render();nachrechnen()}
+  if(k==='hier'){
+    punkt('ende',f).then(function(ok){if(ok)fertig();else render()});
+    return;
+  }
+  var p=DB.einst[k];
+  if(!p){toast(FIX[k]+' ist noch nicht hinterlegt. Bitte zuerst in den Einstellungen setzen.');return}
+  f.stationen.push({id:crypto.randomUUID(),art:'ende',fix:k,lat:p.lat,lon:p.lon,acc:0,adresse:FIX[k],voll:p.voll,geo:'ok'});
+  fertig();
+}
+function fixSetzen(k,p,voll){
+  DB.einst[k]={lat:p.lat,lon:p.lon,voll:voll};
+  speichern();render();
+}
+function fixGps(k){
+  if(busy)return;busy=true;render();
+  position().then(function(p){
+    return umkehr(p.lat,p.lon).then(function(r){return r.voll},function(){return 'Standort '+p.lat.toFixed(5)+', '+p.lon.toFixed(5)}).then(function(v){
+      fixSetzen(k,p,v);
+      toast(p.acc>50?FIX[k]+' gespeichert, aber ungenau (±'+p.acc+' m). Besser im Freien wiederholen.':FIX[k]+' gespeichert (±'+p.acc+' m).');
+    });
+  }).catch(function(e){toast(gpsFehler(e))}).then(function(){busy=false;render()});
+}
+function fixSuche(k){
+  var q=el('adr-'+k).value.trim();if(!q)return;
+  suche(q).then(function(r){fixSetzen(k,r,r.voll);toast(FIX[k]+' gespeichert: '+r.voll)}).catch(function(e){toast('Suche fehlgeschlagen: '+e.message)});
+}
+
+function labelStation(s){
+  var t=s.adresse||(s.geo==='offen'?'Adresse wird ermittelt …':'Adresse fehlt');
+  if(s.acc>100)t+=' <span class="warn">⚠ ±'+s.acc+' m</span>';
+  return t;
+}
+function vHeute(){
+  var f=laufende(),h='',dis=busy?' disabled':'';
+  if(!f){
+    var m=heute().slice(0,7);
+    h+='<p class="stat">'+MONATE[+m.slice(5)-1]+' '+m.slice(0,4)+' · <b>'+fmt(monatssumme(m))+' km</b></p>';
+    h+='<button class="gross" data-a="start" data-f="dion">FAHRT STARTEN<small>ab Dion</small></button>';
+    h+='<button class="gross sek" data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
+    return h;
+  }
+  h+='<div class="card"><span class="tag">FAHRT LÄUFT</span><ul class="stops">';
+  for(var i=0;i<f.stationen.length;i++){var s=f.stationen[i];h+='<li>'+(s.art==='start'?'Start: ':'')+(s.art==='baustelle'?labelStation(s):esc(s.adresse)+(s.acc>100?' <span class="warn">⚠ ±'+s.acc+' m</span>':''))+'</li>'}
+  h+='</ul><div class="stat">Bisher: <b>'+fmt(gesamt(f))+' km</b></div>';
+  h+='<button class="link" data-a="edit" data-id="'+esc(f.id)+'">Bearbeiten / verwerfen</button></div>';
+  h+='<button class="gross"'+dis+' data-a="baustelle">'+(busy?'STANDORT WIRD ERMITTELT …':'BAUSTELLE ERREICHT')+'</button>';
+  h+='<h2>Fahrt beenden</h2><div class="reihe">';
+  h+='<button class="knopf"'+dis+' data-a="ende" data-f="dion">Ende<br>Dion</button>';
+  h+='<button class="knopf"'+dis+' data-a="ende" data-f="zuhause">Ende<br>Zuhause</button>';
+  h+='<button class="knopf"'+dis+' data-a="ende" data-f="hier">Ende<br>hier</button></div>';
+  return h;
+}
+function fahrtenImMonat(){
+  var l=[];
+  for(var i=0;i<DB.fahrten.length;i++)if(DB.fahrten[i].datum.slice(0,7)===monat)l.push(DB.fahrten[i]);
+  return l.map(function(f,i){return{f:f,i:i}}).sort(function(a,b){return a.f.datum<b.f.datum?-1:a.f.datum>b.f.datum?1:a.i-b.i}).map(function(o){return o.f});
+}
+function strecke(f){
+  var t=[];
+  for(var i=0;i<f.stationen.length;i++)t.push(f.stationen[i].adresse||'?');
+  return t.join(' - ');
+}
+function mplus(m,d){var dt=new Date(+m.slice(0,4),+m.slice(5)-1+d,1);return dt.getFullYear()+'-'+p2(dt.getMonth()+1)}
+function vMonat(){
+  var l=fahrtenImMonat(),h='',sum=0,offen=0;
+  h+='<div class="pager"><button class="knopf klein" data-a="mon" data-d="-1" aria-label="Vorheriger Monat">‹</button><b>'+MONATE[+monat.slice(5)-1]+' '+monat.slice(0,4)+'</b><button class="knopf klein" data-a="mon" data-d="1" aria-label="Nächster Monat">›</button></div>';
+  if(!l.length)return h+'<div class="card">Keine Fahrten in diesem Monat.</div>';
+  h+='<div class="card"><table><thead><tr><th>Tag</th><th>Fahrstrecke</th><th class="r">km</th></tr></thead><tbody>';
+  for(var i=0;i<l.length;i++){
+    var f=l[i],g=gesamt(f);
+    if(f.status==='beendet'){if(g==null)offen++;else sum+=g}
+    h+='<tr class="zeile" tabindex="0" data-a="edit" data-id="'+esc(f.id)+'"><td>'+f.datum.slice(8)+'.</td><td>'+esc(strecke(f))+(f.status==='laufend'?' <span class="warn">(läuft)</span>':'')+'</td><td class="r">'+fmt(g)+(f.kmManuell!=null?' ✎':'')+'</td></tr>';
+  }
+  h+='</tbody><tfoot><tr><td></td><td>Gesamt</td><td class="r">'+fmt(sum)+' km</td></tr></tfoot></table></div>';
+  if(offen)h+='<p class="warn">'+offen+' Fahrt(en) noch nicht fertig berechnet.</p>';
+  h+='<div class="reihe" style="grid-template-columns:1fr 1fr"><button class="knopf" data-a="kopieren">Kopieren</button><button class="knopf" data-a="csv">CSV / Teilen</button></div>';
+  return h;
+}
+function exportZeilen(){
+  var z=[],l=fahrtenImMonat();
+  for(var i=0;i<l.length;i++)if(l[i].status==='beendet'){var g=gesamt(l[i]);z.push({tag:+l[i].datum.slice(8),text:strecke(l[i]),km:g==null?'':fmt(g)})}
+  return z;
+}
+function kopieren(){
+  var z=exportZeilen(),t=[];
+  for(var i=0;i<z.length;i++)t.push(z[i].tag+'\t'+z[i].text+'\t'+z[i].km);
+  if(!navigator.clipboard)return toast('Kopieren wird hier nicht unterstützt. Bitte CSV nutzen.');
+  navigator.clipboard.writeText(t.join('\n')).then(function(){toast(z.length+' Zeilen kopiert (Tag, Fahrstrecke, km).')},function(){toast('Kopieren nicht erlaubt.')});
+}
+function datei(name,text,typ){
+  var blob=new Blob([text],{type:typ}),f=new File([blob],name,{type:typ});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).catch(function(){});return}
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href)},2000);
+}
+function csv(){
+  var z=exportZeilen(),t='Tag;Fahrstrecke;km\r\n';
+  for(var i=0;i<z.length;i++)t+=z[i].tag+';"'+z[i].text.replace(/"/g,'""')+'";'+z[i].km+'\r\n';
+  datei('Fahrten_'+monat+'.csv','﻿'+t,'text/csv');
+}
+function fixKarte(k){
+  var p=DB.einst[k];
+  return '<div class="card"><h2>'+FIX[k]+'</h2><p>'+(p?'✓ '+esc(p.voll)+'<small>'+p.lat.toFixed(5)+', '+p.lon.toFixed(5)+'</small>':'<span class="warn">Noch nicht gesetzt</span>')+'</p>'
+    +'<label for="adr-'+k+'">Adresse eintippen</label><input id="adr-'+k+'" autocomplete="off" placeholder="Straße Nr., 1020 Wien">'
+    +'<div class="reihe" style="grid-template-columns:1fr 1fr;margin:12px 0 0"><button class="knopf klein" data-a="fixsuche" data-f="'+k+'">Suchen</button><button class="knopf klein"'+(busy?' disabled':'')+' data-a="fixgps" data-f="'+k+'">Standort hier</button></div></div>';
+}
+function vEinst(){
+  var h=fixKarte('dion')+fixKarte('zuhause');
+  h+='<div class="card"><h2>Routing</h2><label for="orskey">OpenRouteService-Key (optional)</label><input id="orskey" autocomplete="off" autocapitalize="off" spellcheck="false" value="'+esc(DB.einst.orsKey||'')+'">'
+    +'<small>Ohne Key nutzt die App den öffentlichen OSRM-Demoserver (ohne Garantie).</small>'
+    +'<button class="knopf klein" style="margin-top:12px;width:100%" data-a="key">Speichern</button></div>';
+  h+='<div class="card"><h2>Sicherung</h2><div class="reihe" style="grid-template-columns:1fr 1fr;margin:0"><button class="knopf klein" data-a="backup">Sicherung speichern</button><button class="knopf klein" data-a="restore">Sicherung laden</button></div>'
+    +'<input type="file" id="restore" accept="application/json,.json" hidden></div>';
+  h+='<div class="card"><small>Standorte werden nur bei Knopfdruck erfasst, nie im Hintergrund. Gespeichert wird lokal auf diesem Gerät. Nur die Koordinaten der ausgelösten Punkte gehen an Nominatim/OpenStreetMap (Adresse) und an OpenRouteService bzw. OSRM (Straßenkilometer).<br><br>Version 2026-09-30</small></div>';
+  return h;
+}
+
+function edit(fid){
+  var f=fahrt(fid);if(!f)return;
+  var h='<h2>Fahrt bearbeiten</h2><label for="d-datum">Datum</label><input type="date" id="d-datum" value="'+esc(f.datum)+'">';
+  for(var i=0;i<f.stationen.length;i++){
+    var s=f.stationen[i],nm=s.art==='start'?'Start':s.art==='ende'?'Ende':'Baustelle '+i;
+    h+='<div class="st"><div><label for="s'+i+'">'+nm+'</label><input id="s'+i+'" data-sid="'+esc(s.id)+'" value="'+esc(s.adresse)+'" placeholder="Adresse"></div>'
+      +(s.art==='baustelle'?'<button class="mini" data-a="delst" data-id="'+esc(f.id)+'" data-s="'+esc(s.id)+'" aria-label="'+nm+' entfernen">×</button>':'')+'</div>'
+      +(s.voll&&s.art==='baustelle'?'<small>'+esc(s.voll)+(s.acc>100?' · ±'+s.acc+' m':'')+'</small>':'');
+  }
+  var g=gesamt(f);
+  h+='<label for="d-km">Kilometer gesamt'+(f.kmManuell!=null?' (manuell geändert)':'')+'</label><input id="d-km" inputmode="decimal" value="'+(g==null?'':fmt(g))+'" data-alt="'+(g==null?'':fmt(g))+'">';
+  if(f.kmManuell!=null)h+='<button class="link" data-a="kmauto" data-id="'+esc(f.id)+'">Wieder automatisch berechnen</button>';
+  h+='<div class="reihe" style="grid-template-columns:1fr 1fr;margin:16px 0 0"><button class="knopf voll" data-a="dsave" data-id="'+esc(f.id)+'">Speichern</button><button class="knopf" data-a="dclose">Schließen</button></div>';
+  h+='<button class="link bad" data-a="ddel" data-id="'+esc(f.id)+'">Fahrt löschen</button>';
+  el('dlg').innerHTML=h;
+  if(!el('dlg').open)el('dlg').showModal();
+}
+function dlgLesen(f){
+  var d=el('d-datum').value;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(d))f.datum=d;
+  var ins=el('dlg').querySelectorAll('[data-sid]');
+  for(var i=0;i<ins.length;i++){
+    var s=station(f,ins[i].dataset.sid),v=ins[i].value.trim();
+    if(s&&v&&v!==s.adresse){s.adresse=v;s.geo='ok'}
+  }
+  var k=el('d-km');
+  if(k.value!==k.dataset.alt){
+    var n=parseFloat(k.value.replace(',','.'));
+    if(k.value.trim()==='')f.kmManuell=null;
+    else if(isFinite(n)&&n>=0)f.kmManuell=Math.round(n*100)/100;
+  }
+}
+function backup(){
+  var o={v:1,einst:{dion:DB.einst.dion||null,zuhause:DB.einst.zuhause||null},fahrten:DB.fahrten};
+  datei('Fahrtenbuch-Sicherung-'+heute()+'.json',JSON.stringify(o),'application/json');
+}
+function gueltigeFahrt(f){
+  if(!f||typeof f.id!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(f.datum)||!Array.isArray(f.stationen))return false;
+  for(var i=0;i<f.stationen.length;i++){
+    var s=f.stationen[i];
+    if(!s||typeof s.id!=='string'||!isFinite(s.lat)||!isFinite(s.lon))return false;
+  }
+  return true;
+}
+function restore(datei){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var o=JSON.parse(r.result),neu=0,skip=0;
+      if(!o||!Array.isArray(o.fahrten))throw new Error('Keine Fahrtenbuch-Sicherung');
+      for(var i=0;i<o.fahrten.length;i++){
+        var f=o.fahrten[i];
+        if(!gueltigeFahrt(f)){skip++;continue}
+        if(fahrt(f.id))continue;
+        f.abschnitte=f.abschnitte||[];if(f.kmManuell===undefined)f.kmManuell=null;
+        DB.fahrten.push(f);neu++;
+      }
+      if(o.einst){['dion','zuhause'].forEach(function(k){var p=o.einst[k];if(p&&!DB.einst[k]&&isFinite(p.lat)&&isFinite(p.lon))DB.einst[k]={lat:+p.lat,lon:+p.lon,voll:String(p.voll||'')}})}
+      speichern();render();
+      toast(neu+' Fahrt(en) übernommen'+(skip?', '+skip+' ungültig übersprungen':'')+'.');
+    }catch(e){toast('Sicherung nicht lesbar: '+e.message)}
+  };
+  r.readAsText(datei);
+}
+
+function render(){
+  el('main').innerHTML=tab==='heute'?vHeute():tab==='monat'?vMonat():vEinst();
+  var b=document.querySelectorAll('nav button');
+  for(var i=0;i<b.length;i++){if(b[i].dataset.t===tab)b[i].setAttribute('aria-current','page');else b[i].removeAttribute('aria-current')}
+  var n=offenAnzahl(),h=el('hinweis');
+  if(fehler)h.innerHTML='Berechnung fehlgeschlagen: '+esc(fehler)+' <button class="link" data-a="retry">Nochmal</button>';
+  else if(n)h.textContent=n+' Angabe(n) werden berechnet'+(navigator.onLine?' …':', sobald wieder Netz da ist.');
+  else h.textContent='';
+}
+
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-a]');if(!b)return;
+  var a=b.dataset.a,f=b.dataset.id?fahrt(b.dataset.id):null;
+  if(a==='tab'){tab=b.dataset.t;render()}
+  else if(a==='start')starten(b.dataset.f);
+  else if(a==='baustelle')baustelle();
+  else if(a==='ende')beenden(b.dataset.f);
+  else if(a==='edit')edit(b.dataset.id);
+  else if(a==='mon'){monat=mplus(monat,+b.dataset.d);render()}
+  else if(a==='kopieren')kopieren();
+  else if(a==='csv')csv();
+  else if(a==='fixsuche')fixSuche(b.dataset.f);
+  else if(a==='fixgps')fixGps(b.dataset.f);
+  else if(a==='key'){DB.einst.orsKey=el('orskey').value.trim();speichern();toast('Gespeichert.')}
+  else if(a==='backup')backup();
+  else if(a==='restore')el('restore').click();
+  else if(a==='retry'){fehler='';nachrechnen()}
+  else if(a==='dclose')el('dlg').close();
+  else if(a==='dsave'&&f){dlgLesen(f);speichern();el('dlg').close();render()}
+  else if(a==='kmauto'&&f){dlgLesen(f);f.kmManuell=null;speichern();edit(f.id);render()}
+  else if(a==='delst'&&f){
+    dlgLesen(f);
+    f.stationen=f.stationen.filter(function(s){return s.id!==b.dataset.s});
+    baueAbschnitte(f);speichern();edit(f.id);render();nachrechnen();
+  }
+  else if(a==='ddel'&&f){
+    if(b.dataset.sicher!=='1'){b.dataset.sicher='1';b.textContent='Wirklich endgültig löschen?';return}
+    DB.fahrten=DB.fahrten.filter(function(x){return x.id!==f.id});
+    speichern();el('dlg').close();render();
+  }
+});
+document.addEventListener('keydown',function(e){
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('tr[data-a]')){e.preventDefault();edit(e.target.dataset.id)}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='restore'&&e.target.files[0]){restore(e.target.files[0]);e.target.value=''}
+});
+window.addEventListener('online',nachrechnen);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)nachrechnen()});
+
+render();
+nachrechnen();
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');
+})();
+</script>
+</body>
+</html>
