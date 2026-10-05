@@ -259,7 +259,9 @@ function punkt(art,f){
   busy=true;render();
   return position().then(function(p){
     var last=f.stationen[f.stationen.length-1];
-    if(last&&meter(last,p)<50){toast('Gleicher Ort wie die letzte Station (unter 50 m) – nicht doppelt gespeichert.');return false}
+    if(last&&meter(last,p)<50){
+      if(art==='ende'&&last.art==='baustelle'){last.art='ende';return true}
+      toast('Gleicher Ort wie die letzte Station (unter 50 m) – nicht doppelt gespeichert.');return false}
     f.stationen.push({id:crypto.randomUUID(),art:art,fix:null,lat:p.lat,lon:p.lon,acc:p.acc,adresse:'',voll:'',geo:'offen'});
     if(p.acc>100)toast('GPS ungenau (±'+p.acc+' m). Adresse bitte prüfen.');
     return true;
