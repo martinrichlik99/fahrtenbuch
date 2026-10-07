@@ -247,13 +247,25 @@ function nachrechnen(){
   return kette.then(function(){rechnet=false;render()});
 }
 
+function neueFahrt(st){
+  DB.fahrten.push({id:crypto.randomUUID(),datum:heute(),status:'laufend',kmManuell:null,abschnitte:[],stationen:[st]});
+  speichern();
+}
 function starten(k){
   if(busy||laufende())return;
+  if(k==='hier'){
+    busy=true;render();
+    position().then(function(p){
+      neueFahrt({id:crypto.randomUUID(),art:'start',fix:null,lat:p.lat,lon:p.lon,acc:p.acc,adresse:'',voll:'',geo:'offen'});
+      if(p.acc>100)toast('GPS ungenau (±'+p.acc+' m). Adresse bitte prüfen.');
+      nachrechnen();
+    }).catch(function(e){toast(gpsFehler(e))}).then(function(){busy=false;render()});
+    return;
+  }
   var p=DB.einst[k];
   if(!p){toast(FIX[k]+' ist noch nicht hinterlegt. Bitte zuerst in den Einstellungen setzen.');tab='einst';render();return}
-  DB.fahrten.push({id:crypto.randomUUID(),datum:heute(),status:'laufend',kmManuell:null,abschnitte:[],
-    stationen:[{id:crypto.randomUUID(),art:'start',fix:k,lat:p.lat,lon:p.lon,acc:0,adresse:FIX[k],voll:p.voll,geo:'ok'}]});
-  speichern();render();
+  neueFahrt({id:crypto.randomUUID(),art:'start',fix:k,lat:p.lat,lon:p.lon,acc:0,adresse:FIX[k],voll:p.voll,geo:'ok'});
+  render();
 }
 function punkt(art,f){
   busy=true;render();
@@ -305,7 +317,7 @@ function fixSuche(k){
 }
 
 function labelStation(s){
-  var t=s.adresse||(s.geo==='offen'?'Adresse wird ermittelt …':'Adresse fehlt');
+  var t=esc(s.adresse)||(s.geo==='offen'?'Adresse wird ermittelt …':'Adresse fehlt');
   if(s.acc>100)t+=' <span class="warn">⚠ ±'+s.acc+' m</span>';
   return t;
 }
@@ -314,12 +326,13 @@ function vHeute(){
   if(!f){
     var m=heute().slice(0,7);
     h+='<p class="stat">'+MONATE[+m.slice(5)-1]+' '+m.slice(0,4)+' · <b>'+fmt(monatssumme(m))+' km</b></p>';
-    h+='<button class="gross" data-a="start" data-f="dion">FAHRT STARTEN<small>ab Dion</small></button>';
-    h+='<button class="gross sek" data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
+    h+='<button class="gross"'+dis+' data-a="start" data-f="dion">FAHRT STARTEN<small>ab Dion</small></button>';
+    h+='<button class="gross sek"'+dis+' data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
+    h+='<button class="gross sek"'+dis+' data-a="start" data-f="hier">'+(busy?'STANDORT WIRD ERMITTELT …':'FAHRT STARTEN<small>von hier</small>')+'</button>';
     return h;
   }
   h+='<div class="card"><span class="tag">FAHRT LÄUFT</span><ul class="stops">';
-  for(var i=0;i<f.stationen.length;i++){var s=f.stationen[i];h+='<li>'+(s.art==='start'?'Start: ':'')+(s.art==='baustelle'?labelStation(s):esc(s.adresse)+(s.acc>100?' <span class="warn">⚠ ±'+s.acc+' m</span>':''))+'</li>'}
+  for(var i=0;i<f.stationen.length;i++){var s=f.stationen[i];h+='<li>'+(s.art==='start'?'Start: ':'')+(s.fix?esc(s.adresse):labelStation(s))+'</li>'}
   h+='</ul><div class="stat">Bisher: <b>'+fmt(gesamt(f))+' km</b></div>';
   h+='<button class="link" data-a="edit" data-id="'+esc(f.id)+'">Bearbeiten / verwerfen</button></div>';
   h+='<button class="gross"'+dis+' data-a="baustelle">'+(busy?'STANDORT WIRD ERMITTELT …':'BAUSTELLE ERREICHT')+'</button>';
@@ -401,7 +414,7 @@ function edit(fid){
     var s=f.stationen[i],nm=s.art==='start'?'Start':s.art==='ende'?'Ende':'Baustelle '+i;
     h+='<div class="st"><div><label for="s'+i+'">'+nm+'</label><input id="s'+i+'" data-sid="'+esc(s.id)+'" value="'+esc(s.adresse)+'" placeholder="Adresse"></div>'
       +(s.art==='baustelle'?'<button class="mini" data-a="delst" data-id="'+esc(f.id)+'" data-s="'+esc(s.id)+'" aria-label="'+nm+' entfernen">×</button>':'')+'</div>'
-      +(s.voll&&s.art==='baustelle'?'<small>'+esc(s.voll)+(s.acc>100?' · ±'+s.acc+' m':'')+'</small>':'');
+      +(s.voll&&!s.fix?'<small>'+esc(s.voll)+(s.acc>100?' · ±'+s.acc+' m':'')+'</small>':'');
   }
   var g=gesamt(f);
   h+='<label for="d-km">Kilometer gesamt'+(f.kmManuell!=null?' (manuell geändert)':'')+'</label><input id="d-km" inputmode="decimal" value="'+(g==null?'':fmt(g))+'" data-alt="'+(g==null?'':fmt(g))+'">';
