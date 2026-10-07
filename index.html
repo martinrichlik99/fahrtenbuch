@@ -14,8 +14,8 @@
 <link rel="icon" href="icon-192.png">
 <title>Fahrtenbuch</title>
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--tx:#14171c;--mut:#5b6472;--line:#dfe3e8;--acc:#0a6cff;--accTx:#fff;--ok:#0d7a3f;--warn:#9a5700;--bad:#c62828}
-@media(prefers-color-scheme:dark){:root{--bg:#0e1013;--card:#1a1e24;--tx:#f2f4f7;--mut:#9aa4b2;--line:#2c323b;--acc:#4c9aff;--accTx:#06121f;--ok:#4cd08a;--warn:#f0b04a;--bad:#ff7b72}}
+:root{--bg:#f4f5f7;--card:#fff;--tx:#14171c;--mut:#5b6472;--line:#dfe3e8;--acc:#0a6cff;--accTx:#fff;--ok:#0d7a3f;--warn:#9a5700;--bad:#c62828;--gelb:#f5c400;--gelbTx:#14171c;--gruen:#178a48;--gruenTx:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1013;--card:#1a1e24;--tx:#f2f4f7;--mut:#9aa4b2;--line:#2c323b;--acc:#4c9aff;--accTx:#06121f;--ok:#4cd08a;--warn:#f0b04a;--bad:#ff7b72;--gelb:#f0c23a;--gelbTx:#06121f;--gruen:#4cd08a;--gruenTx:#06121f}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--tx);font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-text-size-adjust:100%}
 body{min-height:100vh;padding:calc(12px + env(safe-area-inset-top)) 16px calc(88px + env(safe-area-inset-bottom))}
@@ -32,7 +32,8 @@ small{display:block;color:var(--mut);font-size:13px;font-weight:400}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px}
 .gross{display:block;width:100%;min-height:92px;margin:0 0 14px;padding:12px;border:0;border-radius:20px;background:var(--acc);color:var(--accTx);font-size:22px;font-weight:700;letter-spacing:.02em}
 .gross small{color:inherit;opacity:.85;font-size:15px;font-weight:500;margin-top:2px}
-.gross.sek{background:var(--card);color:var(--tx);border:2px solid var(--acc)}
+.gross.gelb{background:var(--gelb);color:var(--gelbTx)}
+.gross.gruen{background:var(--gruen);color:var(--gruenTx)}
 .gross:disabled,.knopf:disabled{opacity:.5}
 .reihe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px}
 .knopf{min-height:64px;padding:8px;border:2px solid var(--acc);border-radius:16px;background:var(--card);font-weight:700;font-size:16px}
@@ -327,8 +328,8 @@ function vHeute(){
     var m=heute().slice(0,7);
     h+='<p class="stat">'+MONATE[+m.slice(5)-1]+' '+m.slice(0,4)+' · <b>'+fmt(monatssumme(m))+' km</b></p>';
     h+='<button class="gross"'+dis+' data-a="start" data-f="dion">FAHRT STARTEN<small>ab Dion</small></button>';
-    h+='<button class="gross sek"'+dis+' data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
-    h+='<button class="gross sek"'+dis+' data-a="start" data-f="hier">'+(busy?'STANDORT WIRD ERMITTELT …':'FAHRT STARTEN<small>von hier</small>')+'</button>';
+    h+='<button class="gross gelb"'+dis+' data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
+    h+='<button class="gross gruen"'+dis+' data-a="start" data-f="hier">'+(busy?'STANDORT WIRD ERMITTELT …':'FAHRT STARTEN<small>von hier</small>')+'</button>';
     return h;
   }
   h+='<div class="card"><span class="tag">FAHRT LÄUFT</span><ul class="stops">';

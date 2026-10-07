@@ -1,4 +1,4 @@
-var CACHE_NAME='fahrtenbuch-v3';
+var CACHE_NAME='fahrtenbuch-v4';
 self.addEventListener('install',function(e){
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE_NAME).then(function(c){return c.addAll(['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png'])}));
