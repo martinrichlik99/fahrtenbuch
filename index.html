@@ -32,6 +32,8 @@ small{display:block;color:var(--mut);font-size:13px;font-weight:400}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:0 0 14px}
 .gross{display:block;width:100%;min-height:92px;margin:0 0 14px;padding:12px;border:0;border-radius:20px;background:var(--acc);color:var(--accTx);font-size:22px;font-weight:700;letter-spacing:.02em}
 .gross small{color:inherit;opacity:.85;font-size:15px;font-weight:500;margin-top:2px}
+.gross.ort{font-size:32px;letter-spacing:.04em}
+.gross.ort small{margin:0 0 2px}
 .gross.gelb{background:var(--gelb);color:var(--gelbTx)}
 .gross.gruen{background:var(--gruen);color:var(--gruenTx)}
 .gross:disabled,.knopf:disabled{opacity:.5}
@@ -327,9 +329,9 @@ function vHeute(){
   if(!f){
     var m=heute().slice(0,7);
     h+='<p class="stat">'+MONATE[+m.slice(5)-1]+' '+m.slice(0,4)+' · <b>'+fmt(monatssumme(m))+' km</b></p>';
-    h+='<button class="gross"'+dis+' data-a="start" data-f="dion">FAHRT STARTEN<small>ab Dion</small></button>';
-    h+='<button class="gross gelb"'+dis+' data-a="start" data-f="zuhause">FAHRT STARTEN<small>von Zuhause</small></button>';
-    h+='<button class="gross gruen"'+dis+' data-a="start" data-f="hier">'+(busy?'STANDORT WIRD ERMITTELT …':'FAHRT STARTEN<small>von hier</small>')+'</button>';
+    h+='<button class="gross ort"'+dis+' data-a="start" data-f="dion"><small>Fahrt starten ab</small>DION</button>';
+    h+='<button class="gross ort gelb"'+dis+' data-a="start" data-f="zuhause"><small>Fahrt starten von</small>ZUHAUSE</button>';
+    h+='<button class="gross gruen'+(busy?'':' ort')+'"'+dis+' data-a="start" data-f="hier">'+(busy?'STANDORT WIRD ERMITTELT …':'<small>Fahrt starten von</small>HIER')+'</button>';
     return h;
   }
   h+='<div class="card"><span class="tag">FAHRT LÄUFT</span><ul class="stops">';
