@@ -200,7 +200,8 @@ function umkehr(lat,lon){
 function suche(q){
   return fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=de&q='+encodeURIComponent(q)).then(chk).then(function(l){
     if(!l.length)throw new Error('Adresse nicht gefunden');
-    return{lat:+l[0].lat,lon:+l[0].lon,voll:adrText(l[0]).voll};
+    var a=adrText(l[0]);
+    return{lat:+l[0].lat,lon:+l[0].lon,voll:a.voll,text:a.text};
   });
 }
 function route(a,b){
@@ -359,6 +360,7 @@ function mplus(m,d){var dt=new Date(+m.slice(0,4),+m.slice(5)-1+d,1);return dt.g
 function vMonat(){
   var l=fahrtenImMonat(),h='',sum=0,offen=0;
   h+='<div class="pager"><button class="knopf klein" data-a="mon" data-d="-1" aria-label="Vorheriger Monat">‹</button><b>'+MONATE[+monat.slice(5)-1]+' '+monat.slice(0,4)+'</b><button class="knopf klein" data-a="mon" data-d="1" aria-label="Nächster Monat">›</button></div>';
+  h+='<button class="knopf klein" style="width:100%;margin:0 0 14px" data-a="nachtrag">Fahrt nachtragen</button>';
   if(!l.length)return h+'<div class="card">Keine Fahrten in diesem Monat.</div>';
   h+='<div class="card"><table><thead><tr><th>Tag</th><th>Fahrstrecke</th><th class="r">km</th></tr></thead><tbody>';
   for(var i=0;i<l.length;i++){
@@ -406,7 +408,7 @@ function vEinst(){
     +'<button class="knopf klein" style="margin-top:12px;width:100%" data-a="key">Speichern</button></div>';
   h+='<div class="card"><h2>Sicherung</h2><div class="reihe" style="grid-template-columns:1fr 1fr;margin:0"><button class="knopf klein" data-a="backup">Sicherung speichern</button><button class="knopf klein" data-a="restore">Sicherung laden</button></div>'
     +'<input type="file" id="restore" accept="application/json,.json" hidden></div>';
-  h+='<div class="card"><small>Standorte werden nur bei Knopfdruck erfasst, nie im Hintergrund. Gespeichert wird lokal auf diesem Gerät. Nur die Koordinaten der ausgelösten Punkte gehen an Nominatim/OpenStreetMap (Adresse) und an OpenRouteService bzw. OSRM (Straßenkilometer).<br><br>Version 2026-09-30</small></div>';
+  h+='<div class="card"><small>Standorte werden nur bei Knopfdruck erfasst, nie im Hintergrund. Gespeichert wird lokal auf diesem Gerät. Nur die Koordinaten der ausgelösten Punkte gehen an Nominatim/OpenStreetMap (Adresse) und an OpenRouteService bzw. OSRM (Straßenkilometer).<br><br>Version 2026-10-21</small></div>';
   return h;
 }
 
@@ -426,6 +428,43 @@ function edit(fid){
   h+='<button class="link bad" data-a="ddel" data-id="'+esc(f.id)+'">Fahrt löschen</button>';
   el('dlg').innerHTML=h;
   if(!el('dlg').open)el('dlg').showModal();
+}
+var nzN=0;
+function nzZeile(name){
+  var id='nz'+(nzN++);
+  return '<label for="'+id+'">'+name+'</label><input id="'+id+'" data-nz autocomplete="off" placeholder="Straße Nr., 1020 Wien">'
+    +'<button class="link" data-a="nzfix" data-f="dion" data-i="'+id+'">Dion</button><button class="link" data-a="nzfix" data-f="zuhause" data-i="'+id+'">Zuhause</button>';
+}
+function nachtrag(){
+  nzN=0;
+  el('dlg').innerHTML='<h2>Fahrt nachtragen</h2><label for="n-datum">Datum</label><input type="date" id="n-datum" value="'+heute()+'">'
+    +nzZeile('Start')+'<div id="nz-mitte"></div><div><button class="link" data-a="nzbau">+ Baustelle</button></div>'+nzZeile('Ziel')
+    +'<p id="nz-meld" class="bad" role="alert"></p><div class="reihe" style="grid-template-columns:1fr 1fr;margin:16px 0 0"><button class="knopf voll" data-a="nzsave">Speichern</button><button class="knopf" data-a="dclose">Schließen</button></div>';
+  el('dlg').showModal();
+}
+function nachtragSpeichern(){
+  var d=el('n-datum').value,ins=el('dlg').querySelectorAll('[data-nz]'),z=[],i;
+  function meld(t){el('nz-meld').textContent=t}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return meld('Datum fehlt.');
+  if(!ins[0].value.trim()||!ins[ins.length-1].value.trim())return meld('Start und Ziel bitte ausfüllen.');
+  for(i=0;i<ins.length;i++)if(ins[i].value.trim())z.push({v:ins[i].value.trim(),fix:ins[i].dataset.fix||null});
+  var f={id:crypto.randomUUID(),datum:d,status:'beendet',kmManuell:null,abschnitte:[],stationen:[]};
+  busy=true;meld('Adressen werden gesucht …');
+  var kette=Promise.resolve();
+  z.forEach(function(x,n){
+    kette=kette.then(function(){
+      var art=n===0?'start':n===z.length-1?'ende':'baustelle',p=x.fix&&DB.einst[x.fix];
+      if(p)return f.stationen.push({id:crypto.randomUUID(),art:art,fix:x.fix,lat:p.lat,lon:p.lon,acc:0,adresse:FIX[x.fix],voll:p.voll,geo:'ok'});
+      return suche(x.v).then(function(r){
+        f.stationen.push({id:crypto.randomUUID(),art:art,fix:null,lat:r.lat,lon:r.lon,acc:0,adresse:r.text,voll:r.voll,geo:'ok'});
+        return warte(1100);
+      },function(e){throw new Error('„'+x.v+'“: '+e.message)});
+    });
+  });
+  kette.then(function(){
+    baueAbschnitte(f);DB.fahrten.push(f);speichern();
+    monat=d.slice(0,7);tab='monat';el('dlg').close();toast('Fahrt nachgetragen.');nachrechnen();
+  },function(e){meld('Nicht gespeichert – '+e.message)}).then(function(){busy=false;render()});
 }
 function dlgLesen(f){
   var d=el('d-datum').value;
@@ -502,6 +541,13 @@ document.addEventListener('click',function(e){
   else if(a==='backup')backup();
   else if(a==='restore')el('restore').click();
   else if(a==='retry'){fehler='';nachrechnen()}
+  else if(a==='nachtrag')nachtrag();
+  else if(a==='nzbau')el('nz-mitte').insertAdjacentHTML('beforeend',nzZeile('Baustelle'));
+  else if(a==='nzfix'){
+    if(!DB.einst[b.dataset.f])return el('nz-meld').textContent=FIX[b.dataset.f]+' ist noch nicht hinterlegt (Einstellungen).';
+    var inp=el(b.dataset.i);inp.value=FIX[b.dataset.f];inp.dataset.fix=b.dataset.f;
+  }
+  else if(a==='nzsave'){if(!busy)nachtragSpeichern()}
   else if(a==='dclose')el('dlg').close();
   else if(a==='dsave'&&f){dlgLesen(f);speichern();el('dlg').close();render()}
   else if(a==='kmauto'&&f){dlgLesen(f);f.kmManuell=null;speichern();edit(f.id);render()}
@@ -519,6 +565,7 @@ document.addEventListener('click',function(e){
 document.addEventListener('keydown',function(e){
   if((e.key==='Enter'||e.key===' ')&&e.target.matches('tr[data-a]')){e.preventDefault();edit(e.target.dataset.id)}
 });
+document.addEventListener('input',function(e){if(e.target.hasAttribute('data-nz'))delete e.target.dataset.fix});
 document.addEventListener('change',function(e){
   if(e.target.id==='restore'&&e.target.files[0]){restore(e.target.files[0]);e.target.value=''}
 });
