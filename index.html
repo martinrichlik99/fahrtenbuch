@@ -381,18 +381,17 @@ function exportZeilen(){
     var f=l[i],g=gesamt(f),neu=f.datum!==tag;
     if(f.status!=='beendet')continue;
     tag=f.datum;
-    for(var j=1;j<f.stationen.length;j++){
-      var erste=j===1,a=adr(f.stationen[j])||'?';
-      z.push({tag:erste&&neu?+f.datum.slice(8)+'.':'',text:erste?(adr(f.stationen[0])||'?')+' - '+a:a,zweck:erste&&neu?DB.einst.zweck||'':'',km:erste&&g!=null?Math.round(g*10)/10:''});
-    }
+    var t=f.stationen.map(function(s){return adr(s)||'?'});
+    if(f.stationen[0].fix)t.splice(0,2,t[0]+' - '+t[1]);
+    for(var j=0;j<t.length;j++)z.push({tag:!j&&neu?+f.datum.slice(8)+'.':'',text:t[j],zweck:!j&&neu?DB.einst.zweck||'':'',km:!j&&g!=null?Math.ceil(Math.round(g*100)/100):''});
   }
   return z;
 }
 function kopieren(){
   var z=exportZeilen(),t=[];
-  for(var i=0;i<z.length;i++)t.push(z[i].tag+'\t'+z[i].text+'\t'+z[i].zweck);
+  for(var i=0;i<z.length;i++)t.push(z[i].tag+'\t'+z[i].text+'\t'+z[i].zweck+'\t'+z[i].km);
   if(!navigator.clipboard)return toast('Kopieren wird hier nicht unterstützt. Bitte Excel nutzen.');
-  navigator.clipboard.writeText(t.join('\n')).then(function(){toast(z.length+' Zeilen kopiert (Tag, Fahrstrecke, Fahrzweck).')},function(){toast('Kopieren nicht erlaubt.')});
+  navigator.clipboard.writeText(t.join('\n')).then(function(){toast(z.length+' Zeilen kopiert (Tag, Fahrstrecke, Fahrzweck, km).')},function(){toast('Kopieren nicht erlaubt.')});
 }
 function crc32(b){
   var t=crc32.t,c,i,k;
@@ -414,11 +413,10 @@ function zip(dateien){
 }
 function excel(){
   function zelle(sp,r,v){return v===''?'':typeof v==='number'?'<c r="'+sp+r+'"><v>'+v+'</v></c>':'<c r="'+sp+r+'" t="inlineStr"><is><t>'+esc(v)+'</t></is></c>'}
-  var z=[{tag:'Tag',text:'Fahrstrecke',zweck:'Fahrzweck',km:'km (App)'}].concat(exportZeilen()),zeilen='',merges='';
+  var z=[{tag:'Tag',text:'Fahrstrecke',zweck:'Fahrzweck',km:'km'}].concat(exportZeilen()),zeilen='';
   for(var i=0;i<z.length;i++){
     var r=i+1;
-    zeilen+='<row r="'+r+'">'+zelle('A',r,z[i].tag)+zelle('B',r,z[i].text)+zelle('C',r,z[i].zweck)+zelle('K',r,z[i].km)+'</row>';
-    merges+='<mergeCell ref="C'+r+':D'+r+'"/>';
+    zeilen+='<row r="'+r+'">'+zelle('A',r,z[i].tag)+zelle('B',r,z[i].text)+zelle('C',r,z[i].zweck)+zelle('D',r,z[i].km)+'</row>';
   }
   var ns='http://schemas.openxmlformats.org/',rel=ns+'officeDocument/2006/relationships';
   datei('Fahrten_'+monat+'.xlsx',zip({
@@ -426,7 +424,7 @@ function excel(){
     '_rels/.rels':'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="'+ns+'package/2006/relationships"><Relationship Id="rId1" Type="'+rel+'/officeDocument" Target="xl/workbook.xml"/></Relationships>',
     'xl/workbook.xml':'<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="'+ns+'spreadsheetml/2006/main" xmlns:r="'+rel+'"><sheets><sheet name="'+MONATE[+monat.slice(5)-1]+' '+monat.slice(0,4)+'" sheetId="1" r:id="rId1"/></sheets></workbook>',
     'xl/_rels/workbook.xml.rels':'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="'+ns+'package/2006/relationships"><Relationship Id="rId1" Type="'+rel+'/worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
-    'xl/worksheets/sheet1.xml':'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="'+ns+'spreadsheetml/2006/main"><cols><col min="1" max="1" width="5.57" customWidth="1"/><col min="2" max="2" width="28.57" customWidth="1"/><col min="3" max="3" width="11" customWidth="1"/><col min="4" max="4" width="8.29" customWidth="1"/></cols><sheetData>'+zeilen+'</sheetData><mergeCells count="'+z.length+'">'+merges+'</mergeCells></worksheet>'
+    'xl/worksheets/sheet1.xml':'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="'+ns+'spreadsheetml/2006/main"><cols><col min="1" max="1" width="5.57" customWidth="1"/><col min="2" max="2" width="28.57" customWidth="1"/><col min="3" max="3" width="11" customWidth="1"/><col min="4" max="4" width="8.29" customWidth="1"/></cols><sheetData>'+zeilen+'</sheetData></worksheet>'
   }),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 function datei(name,inhalt,typ){
