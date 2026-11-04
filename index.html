@@ -376,15 +376,17 @@ function vMonat(){
   return h;
 }
 function exportZeilen(){
-  var z=[],l=fahrtenImMonat(),tag='';
+  var z=[],l=fahrtenImMonat(),kopf=null;
   for(var i=0;i<l.length;i++){
-    var f=l[i],g=gesamt(f),neu=f.datum!==tag;
+    var f=l[i],g=gesamt(f),neu=!kopf||kopf.datum!==f.datum;
     if(f.status!=='beendet')continue;
-    tag=f.datum;
     var t=f.stationen.map(function(s){return adr(s)||'?'});
     if(f.stationen[0].fix)t.splice(0,2,t[0]+' - '+t[1]);
-    for(var j=0;j<t.length;j++)z.push({tag:!j&&neu?+f.datum.slice(8)+'.':'',text:t[j],zweck:!j&&neu?DB.einst.zweck||'':'',km:!j&&g!=null?Math.ceil(Math.round(g*100)/100):''});
+    if(neu)z.push(kopf={datum:f.datum,summe:0,tag:+f.datum.slice(8)+'.',text:t.shift(),zweck:DB.einst.zweck||'',km:''});
+    for(var j=0;j<t.length;j++)z.push({tag:'',text:t[j],zweck:'',km:''});
+    kopf.summe=g==null||kopf.summe==null?null:kopf.summe+g;
   }
+  z.forEach(function(r){if(r.datum)r.km=r.summe==null?'':Math.ceil(Math.round(r.summe*100)/100)});
   return z;
 }
 function kopieren(){
